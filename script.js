@@ -4,11 +4,9 @@ async function loadPyodideAndPackages() {
   pyodide = await loadPyodide();
   await pyodide.loadPackage(["numpy", "matplotlib", "pillow", "scipy"]);
 
-  // Fetch and run main.py so its functions become available
   const mainCode = await (await fetch("main.py")).text();
   await pyodide.runPythonAsync(mainCode);
 
-  console.log("Pyodide and main.py loaded!");
 }
 
 loadPyodideAndPackages();
@@ -31,7 +29,6 @@ async function runAnalysis() {
   pyodide.FS.writeFile("ref.tiff", new Uint8Array(refBuf));
   pyodide.FS.writeFile("shot.tiff", new Uint8Array(shotBuf));
 
-  // Read parameter values from HTML
   const weight = parseFloat(document.getElementById("paramWeight").value);
   const wl = [
     parseFloat(document.getElementById("wlStart").value),
@@ -70,4 +67,11 @@ plot(data)
   const blob = new Blob([outputImage], { type: "image/png" });
   const url = URL.createObjectURL(blob);
   document.getElementById("resultImg").src = url;
+
+  const outputTiff = pyodide.FS.readFile("/output.tiff", { encoding: "binary" });
+  const tiffBlob = new Blob([outputTiff], { type: "image/tiff" });
+  const tiffUrl = URL.createObjectURL(tiffBlob);
+  const downloadLink = document.getElementById("downloadLink");
+  downloadLink.href = tiffUrl;
+  downloadLink.style.display = "inline";
 }

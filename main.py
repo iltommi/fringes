@@ -225,9 +225,12 @@ def analyze(FileRef, FileShot, scale=None, weight=0.5, wl=[1,1,1], al=[1,1,1], t
     images_dict['contrast'] = bestContrast
     images_dict['fringeshift'] = fringeshift
     images_dict['interpolated'] = interpolated
-    images_dict['swaps'] = swaps
-    images_dict['angle'] = bestAngle - anglerad / np.pi
-    images_dict['interfringe'] = bestInterfringe / interfringe
+#     images_dict['swaps'] = swaps
+#     images_dict['angle'] = bestAngle - anglerad / np.pi
+#     images_dict['interfringe'] = bestInterfringe / interfringe
 
+    image = Image.fromarray(interpolated)
+    image.save("/output.tiff", format='TIFF')
+    
     return images_dict
 

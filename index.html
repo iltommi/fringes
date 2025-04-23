@@ -74,6 +74,15 @@
       padding: 1rem;
       border-radius: 6px;
     }
+    a#downloadLink {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.7rem 1.5rem;
+      background-color: #28a745;
+      color: white;
+      border-radius: 6px;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
@@ -128,13 +137,14 @@
     <div class="form-group">
       <label>
         Invert Sign
-        <input type="checkbox" id="paramInvertSign">
+        <input type="checkbox" id="paramInvertSign" checked>
       </label>
     </div>
     <button onclick="runAnalysis()">Run Analysis</button>
   </div>
 
   <img id="resultImg" alt="Result Image" />
+  <a id="downloadLink" href="#" download="output.tiff">Download TIFF Output</a>
   <div id="output"></div>
 </body>
 </html>
