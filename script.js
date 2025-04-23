@@ -1,0 +1,73 @@
+let pyodide;
+
+async function loadPyodideAndPackages() {
+  pyodide = await loadPyodide();
+  await pyodide.loadPackage(["numpy", "matplotlib", "pillow", "scipy"]);
+
+  // Fetch and run main.py so its functions become available
+  const mainCode = await (await fetch("main.py")).text();
+  await pyodide.runPythonAsync(mainCode);
+
+  console.log("Pyodide and main.py loaded!");
+}
+
+loadPyodideAndPackages();
+
+async function runAnalysis() {
+  const fileRef = document.getElementById("fileRef").files[0];
+  const fileShot = document.getElementById("fileShot").files[0];
+
+  const readAsBytes = (file) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsArrayBuffer(file);
+  });
+
+  const [refBuf, shotBuf] = await Promise.all([
+    readAsBytes(fileRef),
+    readAsBytes(fileShot),
+  ]);
+
+  pyodide.FS.writeFile("ref.tiff", new Uint8Array(refBuf));
+  pyodide.FS.writeFile("shot.tiff", new Uint8Array(shotBuf));
+
+  // Read parameter values from HTML
+  const weight = parseFloat(document.getElementById("paramWeight").value);
+  const wl = [
+    parseFloat(document.getElementById("wlStart").value),
+    parseFloat(document.getElementById("wlStop").value),
+    parseInt(document.getElementById("wlSteps").value),
+  ];
+  const al = [
+    parseFloat(document.getElementById("alStart").value),
+    parseFloat(document.getElementById("alStop").value),
+    parseInt(document.getElementById("alSteps").value),
+  ];
+  const tl = [
+    parseFloat(document.getElementById("tlStart").value),
+    parseFloat(document.getElementById("tlStop").value),
+    parseInt(document.getElementById("tlSteps").value),
+  ];
+  const cutoff = parseFloat(document.getElementById("paramCutoff").value);
+  const invertSign = document.getElementById("paramInvertSign").checked;
+
+  const pythonCode = `
+params = {
+    'weight': ${weight},
+    'wl': ${JSON.stringify(wl)},
+    'al': ${JSON.stringify(al)},
+    'tl': ${JSON.stringify(tl)},
+    'cutoff': ${cutoff},
+    'invertSign': ${invertSign ? 'True' : 'False'}
+}
+data = analyze('ref.tiff', 'shot.tiff', **params)
+plot(data)
+`;
+
+  await pyodide.runPythonAsync(pythonCode);
+
+  const outputImage = pyodide.FS.readFile("/output.png", { encoding: "binary" });
+  const blob = new Blob([outputImage], { type: "image/png" });
+  const url = URL.createObjectURL(blob);
+  document.getElementById("resultImg").src = url;
+}
