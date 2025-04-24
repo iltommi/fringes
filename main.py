@@ -5,6 +5,7 @@ matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 from io import BytesIO
+import sys
 
 def unwrap2D(wrapped_image, quality_image=None) -> np.ndarray:
     
@@ -211,8 +212,8 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
         axes[i].grid()
 
     plt.tight_layout()
-    fig.savefig("/output.png") 
-
+    directory= '/' if sys.platform == "emscripten" else ""
+    fig.savefig(directory+"output.png") 
     image = Image.fromarray(fringeshift)
-    image.save("/output.tiff", format='TIFF')
-    
+    image.save(directory+"output.tiff", format='TIFF')
+        
