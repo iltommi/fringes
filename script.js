@@ -29,37 +29,11 @@ async function runAnalysis() {
   pyodide.FS.writeFile("ref.tiff", new Uint8Array(refBuf));
   pyodide.FS.writeFile("shot.tiff", new Uint8Array(shotBuf));
 
-  const weight = parseFloat(document.getElementById("paramWeight").value);
-  const wl = [
-    parseFloat(document.getElementById("wlStart").value),
-    parseFloat(document.getElementById("wlStop").value),
-    parseInt(document.getElementById("wlSteps").value),
-  ];
-  const al = [
-    parseFloat(document.getElementById("alStart").value),
-    parseFloat(document.getElementById("alStop").value),
-    parseInt(document.getElementById("alSteps").value),
-  ];
-  const tl = [
-    parseFloat(document.getElementById("tlStart").value),
-    parseFloat(document.getElementById("tlStop").value),
-    parseInt(document.getElementById("tlSteps").value),
-  ];
+  const wl = parseInt(document.getElementById("wlSteps").value);
+  const al = parseInt(document.getElementById("alSteps").value);
   const cutoff = parseFloat(document.getElementById("paramCutoff").value);
-  const invertSign = document.getElementById("paramInvertSign").checked;
 
-  const pythonCode = `
-params = {
-    'weight': ${weight},
-    'wl': ${JSON.stringify(wl)},
-    'al': ${JSON.stringify(al)},
-    'tl': ${JSON.stringify(tl)},
-    'cutoff': ${cutoff},
-    'invertSign': ${invertSign ? 'True' : 'False'}
-}
-data = analyze('ref.tiff', 'shot.tiff', **params)
-plot(data)
-`;
+  const pythonCode = `analyze('ref.tiff', 'shot.tiff', wl=${wl}, al=${al}, cutoff=${cutoff})`;
 
   await pyodide.runPythonAsync(pythonCode);
 

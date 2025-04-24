@@ -12,7 +12,7 @@
       background-color: #f7f9fc;
       color: #333;
       padding: 2rem;
-      max-width: 800px;
+      max-width:1000px;
       margin: auto;
     }
     h1 {
@@ -41,13 +41,20 @@
       margin-top: 0.25rem;
       border: 1px solid #ccc;
       border-radius: 6px;
+      box-sizing: border-box; /* Ensures padding doesn't affect width */
     }
     input[type="checkbox"] {
       margin-left: 0.5rem;
     }
     .input-row {
       display: flex;
-      gap: 0.5rem;
+      gap: 1rem;
+      flex-wrap: wrap; /* Allow items to wrap onto new lines if necessary */
+    }
+    .input-row > div {
+      flex: 1;
+      min-width: 200px; /* Ensures minimum width so the input fields are readable */
+      max-width: 45%; /* Prevents the fields from stretching too wide */
     }
     button {
       padding: 0.7rem 1.5rem;
@@ -86,63 +93,39 @@
   </style>
 </head>
 <body>
-  <h1>Fringe Analyzer</h1>
-
   <div class="form-section">
-    <div class="form-group">
-      <label for="fileRef">Reference File</label>
-      <input type="file" id="fileRef" />
-    </div>
-    <div class="form-group">
-      <label for="fileShot">Shot File</label>
-      <input type="file" id="fileShot" />
-    </div>
-    <div class="form-group">
-      <label for="paramWeight">Weight</label>
-      <input type="number" id="paramWeight" value="0.5" step="0.1">
+    <!-- File Inputs Section (side by side) -->
+    <div class="form-group input-row">
+      <div>
+        <label for="fileRef">Reference File</label>
+        <input type="file" id="fileRef" />
+      </div>
+      <div>
+        <label for="fileShot">Shot File</label>
+        <input type="file" id="fileShot" />
+      </div>
+      <button onclick="runAnalysis()">Run Analysis</button>
     </div>
 
-    <div class="form-group">
-      <label>Wavelength (start, stop, steps)</label>
-      <div class="input-row">
-        <input id="wlStart" type="number" value="0.1" step="0.1">
-        <input id="wlStop" type="number" value="3" step="0.1">
+    <!-- Wavelength & Angle Section (side by side) -->
+    <div class="form-group input-row">
+      <div>
+        <label>Freq</label>
         <input id="wlSteps" type="number" value="10" step="1">
       </div>
-    </div>
-
-    <div class="form-group">
-      <label>Angle (start, stop, steps)</label>
-      <div class="input-row">
-        <input id="alStart" type="number" value="-90">
-        <input id="alStop" type="number" value="90">
+      <div>
+        <label>Angle</label>
         <input id="alSteps" type="number" value="20">
       </div>
-    </div>
-
-    <div class="form-group">
-      <label>Thickness (start, stop, steps)</label>
-      <div class="input-row">
-        <input id="tlStart" type="number" value="0.5" step="0.1">
-        <input id="tlStop" type="number" value="0.5" step="0.1">
-        <input id="tlSteps" type="number" value="1">
+      <div>
+        <label>Cutoff</label>
+        <input type="number" id="paramCutoff" value="0.2" step="0.05">
       </div>
     </div>
 
-    <div class="form-group">
-      <label for="paramCutoff">Cutoff</label>
-      <input type="number" id="paramCutoff" value="0.2" step="0.05">
-    </div>
-
-    <div class="form-group">
-      <label>
-        Invert Sign
-        <input type="checkbox" id="paramInvertSign" checked>
-      </label>
-    </div>
-    <button onclick="runAnalysis()">Run Analysis</button>
   </div>
 
+  <!-- Result Image and Download Link Section -->
   <img id="resultImg" alt="Result Image" />
   <a id="downloadLink" href="#" download="output.tiff">Download TIFF Output</a>
   <div id="output"></div>

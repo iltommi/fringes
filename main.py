@@ -99,6 +99,7 @@ def unwrap2D(wrapped_image, quality_image=None) -> np.ndarray:
 
     unwrapped = np.array([p.value + p.increment for p in pixels]).reshape((height, width))
     return unwrapped
+    
 def plot(images_dict):
     n = len(images_dict)
     ncols = int(np.ceil(np.sqrt(n)))
@@ -131,74 +132,60 @@ def guess(fftRef, weight):
     interfringe = 1 / np.sqrt(fxm**2 + fym**2)
     return anglerad, interfringe
 
-def filterAngleInterfringe(fft, thick, anglerad, interfringe):
+def filterAngleInterfringe(fft, anglerad, interfringe):
     dy, dx = fft.shape
     sr = np.sin(anglerad)
     cr = np.cos(anglerad)
     freq_filter = interfringe / np.sqrt((cr*dx)**2 + (sr*dy)**2)
-    slit_freq = (np.pi * thick) / np.sqrt((sr*dx)**2 + (cr*dy)**2)
+    slit_freq = (np.pi * interfringe) / np.sqrt((sr*dx)**2 + (cr*dy)**2)
     X, Y = np.meshgrid(np.arange(-dx//2, dx-dx//2), np.arange(-dy//2, dy-dy//2))
     Xr = cr*X + sr*Y
     Yr = -sr*X + cr*Y
-    morlet = np.exp(-(np.pi*(Xr*freq_filter - 1))**2 - (Yr*slit_freq)**2) * np.sqrt(np.sqrt(thick))
+    morlet = np.exp(-(np.pi*(Xr*freq_filter - 1))**2 - (Yr*slit_freq)**2) 
     filtered = np.fft.fftshift(morlet) * fft
     signal = np.fft.ifft2(filtered)
     contrast = 2 * np.abs(signal)
     fringeshift = np.arctan2(np.imag(signal), np.real(signal)) / (2 * np.pi)
     return fringeshift, contrast
 
-def interpolate(fringeshift, bad_mask):
-    height, width = fringeshift.shape
-    x = np.linspace(0, 10, width)
-    y = np.linspace(0, 10, height)
-    X, Y = np.meshgrid(x, y)
-    points = np.array((Y[~bad_mask], X[~bad_mask])).T
-    values = fringeshift[~bad_mask]
-    interp_points = np.array((Y[bad_mask], X[bad_mask])).T
-    interpolated_values = griddata(points, values, interp_points, method='linear')
-    data_interp = fringeshift.copy()
-    data_interp[bad_mask] = interpolated_values
-    data_interp -= np.nanmin(fringeshift)
-    data_interp = np.nan_to_num(data_interp, nan=0.0)
-    return data_interp
 
-def analyze(FileRef, FileShot, scale=None, weight=0.5, wl=[1,1,1], al=[1,1,1], tl=[1,1,1], cutoff=0, invertSign=False):
+def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     ref = np.array(Image.open(FileRef))
     shot = np.array(Image.open(FileShot))   
     images_dict = OrderedDict()
 
-    if scale:
-        zoom_factors = np.array(scale) / np.array(ref.shape)
-        ref = zoom(ref, zoom_factors)
-        shot = zoom(shot, zoom_factors)
+    scale=256
+    zoom_factors = scale / np.array(ref.shape)
+    ref = zoom(ref, zoom_factors)
+    shot = zoom(shot, zoom_factors)
 
     fftRef = np.fft.fft2(ref)
     fftShot = np.fft.fft2(shot)
 
+    weight=0.5
     anglerad, interfringe = guess(fftRef, weight)
 
-    interfringes = interfringe * np.linspace(*wl if wl[2] > 0 else [1, 1, 1])
-    thicknesses = interfringe * np.linspace(*tl if tl[2] > 0 else [1, 1, 1])
-    angles = anglerad + (np.deg2rad(np.linspace(*al)) if al[2] > 0 else [0, 0, 1])
+    i0=3
+    wl = wl if wl%2==1 else wl+1
+    interfringes = [i0 * (((interfringe / i0) ** (1 / (wl // 2))) ** i) for i in range(wl)]
+    al=al if al%2==1 else al+1
+    angles      = anglerad+(np.deg2rad(np.arange(-90,90,180/al)))
 
-    fringeshiftRef, contrastRef = filterAngleInterfringe(fftRef, interfringe, anglerad, interfringe)
+    fringeshiftRef, contrastRef = filterAngleInterfringe(fftRef, anglerad, interfringe)
 
     bestContrast = np.zeros_like(contrastRef)
     bestFringeshift = np.zeros_like(contrastRef)
     bestInterfringe = np.zeros_like(contrastRef)
     bestAngle = np.zeros_like(contrastRef)
-    bestThick = np.zeros_like(contrastRef)
 
-    for t in thicknesses:
-        for i in interfringes:
-            for a in angles:
-                fringeshift, contrast = filterAngleInterfringe(fftShot, t, a, i)
-                bestC = contrast > bestContrast
-                bestContrast[bestC] = contrast[bestC]
-                bestFringeshift[bestC] = fringeshift[bestC]
-                bestThick[bestC] = t
-                bestInterfringe[bestC] = i
-                bestAngle[bestC] = a / np.pi
+    for i in interfringes:
+        for a in angles:
+            fringeshift, contrast = filterAngleInterfringe(fftShot, a, i)
+            bestC = contrast > bestContrast
+            bestContrast[bestC] = contrast[bestC]
+            bestFringeshift[bestC] = fringeshift[bestC]
+            bestInterfringe[bestC] = i
+            bestAngle[bestC] = a / np.pi
 
     unwrapRef = unwrap2D(fringeshiftRef, contrastRef)
     unwrapAngles = unwrap2D(bestAngle, bestContrast)
@@ -208,29 +195,20 @@ def analyze(FileRef, FileShot, scale=None, weight=0.5, wl=[1,1,1], al=[1,1,1], t
 
     diff = lambda arr: np.max(arr) - np.min(arr)
     fringeshift = unwrapShot - unwrapRef if diff(unwrapShot - unwrapRef) < diff(unwrapShot + unwrapRef) else unwrapShot + unwrapRef
-    if invertSign:
-        fringeshift = -fringeshift
 
     cutoff_value = np.min(bestContrast) + cutoff * (np.max(bestContrast) - np.min(bestContrast))
     cutoff_mask = bestContrast < cutoff_value
     fringeshift[cutoff_mask] = np.nan
     fringeshift -= np.nanmin(fringeshift)
-    interpolated = interpolate(fringeshift, cutoff_mask)
 
-    bestThick[cutoff_mask] = np.nan
     bestInterfringe[cutoff_mask] = np.nan
     unwrapAngles[cutoff_mask] = np.nan
 
     images_dict['synthetic'] = bestContrast * (1 + np.cos(bestFringeshift * 2 * np.pi))
     images_dict['contrast'] = bestContrast
     images_dict['fringeshift'] = fringeshift
-    images_dict['interpolated'] = interpolated
-#     images_dict['swaps'] = swaps
-#     images_dict['angle'] = bestAngle - anglerad / np.pi
-#     images_dict['interfringe'] = bestInterfringe / interfringe
 
     image = Image.fromarray(interpolated)
     image.save("/output.tiff", format='TIFF')
     
-    return images_dict
-
+    plot(images_dict)
