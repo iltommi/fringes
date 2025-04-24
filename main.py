@@ -1,7 +1,5 @@
 import numpy as np
 from PIL import Image
-from scipy.ndimage import zoom
-from scipy.interpolate import griddata
 import matplotlib
 matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
@@ -99,13 +97,31 @@ def unwrap2D(wrapped_image, quality_image=None) -> np.ndarray:
 
     unwrapped = np.array([p.value + p.increment for p in pixels]).reshape((height, width))
     return unwrapped
+
+import numpy as np
+
+import numpy as np
+
+def scale_array(arr, new_shape):
+    old_rows, old_cols = arr.shape
+    new_rows, new_cols = new_shape
     
+    # Create grid of indices for old and new arrays
+    old_row_indices = np.linspace(0, old_rows - 1, new_rows)
+    old_col_indices = np.linspace(0, old_cols - 1, new_cols)
+    
+    # Create mesh grids
+    old_row_grid, old_col_grid = np.meshgrid(old_row_indices, old_col_indices, indexing='ij')
+    
+    # Interpolate values
+    scaled_arr = arr[old_row_grid.astype(int), old_col_grid.astype(int)]
+    
+    return scaled_arr
+     
 def plot(images_dict):
     n = len(images_dict)
-    ncols = int(np.ceil(np.sqrt(n)))
-    nrows = int(np.ceil(n / ncols))
 
-    fig, axes = plt.subplots(nrows, ncols, figsize=(8, 8))
+    fig, axes = plt.subplots(1, n, figsize=(10, 3))
     axes = axes.flatten()
 
     for i, (key, image) in enumerate(images_dict.items()):
@@ -154,10 +170,10 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     shot = np.array(Image.open(FileShot))   
     images_dict = OrderedDict()
 
-    scale=256
-    zoom_factors = scale / np.array(ref.shape)
-    ref = zoom(ref, zoom_factors)
-    shot = zoom(shot, zoom_factors)
+    orig_size=ref.shape
+    scale=256    
+    ref = scale_array(ref, (scale,scale))
+    shot = scale_array(shot, (scale,scale))
 
     fftRef = np.fft.fft2(ref)
     fftShot = np.fft.fft2(shot)
@@ -204,11 +220,12 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     bestInterfringe[cutoff_mask] = np.nan
     unwrapAngles[cutoff_mask] = np.nan
 
+    images_dict['original'] = shot
     images_dict['synthetic'] = bestContrast * (1 + np.cos(bestFringeshift * 2 * np.pi))
-    images_dict['contrast'] = bestContrast
     images_dict['fringeshift'] = fringeshift
 
-    image = Image.fromarray(interpolated)
+    fringeshift=scale_array(fringeshift,orig_size)
+    image = Image.fromarray(fringeshift)
     image.save("/output.tiff", format='TIFF')
     
     plot(images_dict)
