@@ -98,10 +98,6 @@ def unwrap2D(wrapped_image, quality_image=None) -> np.ndarray:
     unwrapped = np.array([p.value + p.increment for p in pixels]).reshape((height, width))
     return unwrapped
 
-import numpy as np
-
-import numpy as np
-
 def scale_array(arr, new_shape):
     old_rows, old_cols = arr.shape
     new_rows, new_cols = new_shape

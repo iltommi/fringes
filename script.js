@@ -4,7 +4,7 @@ async function loadPyodideAndPackages() {
   document.getElementById("loadingBanner").style.display = "block";
 
   pyodide = await loadPyodide();
-  await pyodide.loadPackage(["numpy", "matplotlib", "pillow"]);
+  await pyodide.loadPackage(["numpy", "matplotlib", "pillow", "scipy"]);
 
   const mainCode = await (await fetch("main.py")).text();
   await pyodide.runPythonAsync(mainCode);
