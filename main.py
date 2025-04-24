@@ -167,7 +167,7 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     shot = np.array(Image.open(FileShot).convert('L'))   
     images_dict = OrderedDict()
 
-    orig_size=ref.shape
+    orig_size=shot.shape
     scale=256    
     ref = scale_array(ref, (scale,scale))
     shot = scale_array(shot, (scale,scale))
