@@ -15,10 +15,6 @@
       max-width:1000px;
       margin: auto;
     }
-    h1 {
-      text-align: center;
-      color: #222;
-    }
     .form-section {
       background: #fff;
       border-radius: 10px;
@@ -41,7 +37,7 @@
       margin-top: 0.25rem;
       border: 1px solid #ccc;
       border-radius: 6px;
-      box-sizing: border-box; /* Ensures padding doesn't affect width */
+      box-sizing: border-box;
     }
     input[type="checkbox"] {
       margin-left: 0.5rem;
@@ -49,12 +45,12 @@
     .input-row {
       display: flex;
       gap: 1rem;
-      flex-wrap: wrap; /* Allow items to wrap onto new lines if necessary */
+      flex-wrap: wrap;
     }
     .input-row > div {
       flex: 1;
-      min-width: 200px; /* Ensures minimum width so the input fields are readable */
-      max-width: 45%; /* Prevents the fields from stretching too wide */
+      min-width: 200px;
+      max-width: 45%;
     }
     button {
       padding: 0.7rem 1.5rem;
@@ -94,7 +90,7 @@
 </head>
 <body>
 <div id="loadingBanner" style="display: none; text-align: center; padding: 1rem; background: #ffc107; color: #333; font-weight: bold;">
-  Loading packages, please wait...
+  Loading Pyodide packages, please wait...
 </div>
   <div class="form-section">
     <!-- File Inputs Section (side by side) -->
@@ -110,27 +106,25 @@
       <button onclick="runAnalysis()">Run Analysis</button>
     </div>
 
-    <!-- Wavelength & Angle Section (side by side) -->
     <div class="form-group input-row">
       <div>
-        <label>Freq</label>
-        <input id="wlSteps" type="number" value="10" step="1">
+        <label>Frequencies</label>
+        <input id="wlSteps" type="number" value="5" step="1">
       </div>
       <div>
-        <label>Angle</label>
+        <label>Angles</label>
         <input id="alSteps" type="number" value="20">
       </div>
       <div>
         <label>Cutoff</label>
-        <input type="number" id="paramCutoff" value="0.2" step="0.05">
+        <input type="number" id="paramCutoff" value="0.1" step="0.05">
       </div>
     </div>
 
   </div>
 
-  <!-- Result Image and Download Link Section -->
   <img id="resultImg" alt="Result Image" />
-  <a id="downloadLink" href="#" download="output.tiff">Download TIFF Output</a>
+  <a id="downloadLink" href="#" download="output.tiff">Download TIFF</a>
   <div id="output"></div>
 </body>
 </html>

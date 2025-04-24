@@ -102,36 +102,15 @@ def scale_array(arr, new_shape):
     old_rows, old_cols = arr.shape
     new_rows, new_cols = new_shape
     
-    # Create grid of indices for old and new arrays
     old_row_indices = np.linspace(0, old_rows - 1, new_rows)
     old_col_indices = np.linspace(0, old_cols - 1, new_cols)
     
-    # Create mesh grids
     old_row_grid, old_col_grid = np.meshgrid(old_row_indices, old_col_indices, indexing='ij')
     
-    # Interpolate values
     scaled_arr = arr[old_row_grid.astype(int), old_col_grid.astype(int)]
     
     return scaled_arr
-     
-def plot(images_dict):
-    n = len(images_dict)
-
-    fig, axes = plt.subplots(1, n, figsize=(10, 3))
-    axes = axes.flatten()
-
-    for i, (key, image) in enumerate(images_dict.items()):
-        im = axes[i].imshow(image)
-        fig.colorbar(im, ax=axes[i], fraction=0.046, pad=0.04)
-        axes[i].set_title(key)
-        axes[i].grid()
-
-    for j in range(n, len(axes)):
-        axes[j].axis('off')
-
-    plt.tight_layout()
-    fig.savefig("/output.png")  # Save to Pyodide virtual FS
-
+    
 def guess(fftRef, weight):
     dy, dx = fftRef.shape
     fx = np.fft.fftfreq(dx)
@@ -217,12 +196,23 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     bestInterfringe[cutoff_mask] = np.nan
     unwrapAngles[cutoff_mask] = np.nan
 
-    images_dict['original'] = shot
-    images_dict['synthetic'] = bestContrast * (1 + np.cos(bestFringeshift * 2 * np.pi))
-    images_dict['fringeshift'] = fringeshift
+    images_dict['Original'] = shot
+    images_dict['Synthetic'] = bestContrast * (1 + np.cos(bestFringeshift * 2 * np.pi))
+    images_dict['Fringeshift'] = fringeshift
 
-    fringeshift=scale_array(fringeshift,orig_size)
+    fig, axes = plt.subplots(1, len(images_dict), figsize=(10, 3))
+    axes = axes.flatten()
+
+    for i, (key, image) in enumerate(images_dict.items()):
+        image = scale_array(image,orig_size)
+        im = axes[i].imshow(image)
+        fig.colorbar(im, ax=axes[i], fraction=0.046, pad=0.04)
+        axes[i].set_title(key)
+        axes[i].grid()
+
+    plt.tight_layout()
+    fig.savefig("/output.png") 
+
     image = Image.fromarray(fringeshift)
     image.save("/output.tiff", format='TIFF')
     
-    plot(images_dict)
