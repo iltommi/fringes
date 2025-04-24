@@ -163,8 +163,8 @@ def filterAngleInterfringe(fft, anglerad, interfringe):
 
 def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     
-    ref = np.array(Image.open(FileRef))
-    shot = np.array(Image.open(FileShot))   
+    ref = np.array(Image.open(FileRef).convert('L'))
+    shot = np.array(Image.open(FileShot).convert('L'))   
     images_dict = OrderedDict()
 
     orig_size=ref.shape
