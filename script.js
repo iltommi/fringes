@@ -13,6 +13,7 @@ async function loadPyodideAndPackages() {
   await pyodide.runPythonAsync(mainCode);
 
   banner.classList.add("hidden");
+  document.querySelector("button[type='submit']").disabled = false;
 }
 
 loadPyodideAndPackages();
