@@ -35,15 +35,26 @@
       padding: 1rem;
       border-radius: 6px;
     }
-    .hidden {
-      display: none;
+    #loadingBanner {
+      opacity: 0;
+      pointer-events: none;
+      height: 0;
+      overflow: hidden;
+      transition: opacity 0.3s ease;
+    }
+    #loadingBanner.show {
+      opacity: 1;
+      pointer-events: auto;
+      height: auto;
     }
   </style>
 </head>
 <body>
-<div id="loadingBanner" class="alert alert-warning text-center hidden">
-  <span id="loadingText">Loading Pyodide packages, please wait...</span>
+<div id="loadingBanner" class="alert alert-warning text-center">
+  <span id="loadingText" role="status" aria-live="polite">Loading...</span>
+  <div class="spinner-border text-primary ms-2" role="status" aria-hidden="true"></div>
 </div>
+
 <div class="form-section">
   <form id="analysisForm" onsubmit="runAnalysis(); return false;">
     <div class="row g-3">
@@ -73,6 +84,7 @@
     </div>
   </form>
 </div>
+
 <img id="resultImg" alt="Result Image" />
 <a id="downloadLink" class="btn btn-success hidden mt-2" href="#" download="output.tiff">Download TIFF</a>
 <div id="output" class="mt-3"></div>

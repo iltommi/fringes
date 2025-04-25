@@ -2,9 +2,27 @@ let pyodide;
 let oldImageUrl = null;
 let oldTiffUrl = null;
 
-async function loadPyodideAndPackages() {
+function showBanner(message) {
   const banner = document.getElementById("loadingBanner");
-  banner.classList.remove("hidden");
+  const loadingText = document.getElementById("loadingText");
+  loadingText.textContent = message;
+  banner.classList.add("show");
+}
+
+function hideBanner() {
+  const banner = document.getElementById("loadingBanner");
+  banner.classList.remove("show");
+}
+
+function toggleForm(disabled) {
+  document.querySelectorAll("#analysisForm input, #analysisForm button").forEach(el => {
+    el.disabled = disabled;
+  });
+}
+
+async function loadPyodideAndPackages() {
+  showBanner("Loading Pyodide packages, please wait...");
+  toggleForm(true);
 
   pyodide = await loadPyodide();
   await pyodide.loadPackage(["numpy", "matplotlib", "pillow", "scipy"]);
@@ -12,20 +30,20 @@ async function loadPyodideAndPackages() {
   const mainCode = await (await fetch("main.py")).text();
   await pyodide.runPythonAsync(mainCode);
 
-  banner.classList.add("hidden");
+  hideBanner();
+  toggleForm(false);
   document.querySelector("button[type='submit']").disabled = false;
 }
 
 loadPyodideAndPackages();
 
 async function runAnalysis() {
-  const banner = document.getElementById("loadingBanner");
-  const loadingText = document.getElementById("loadingText");
-  banner.classList.remove("hidden");
-  loadingText.textContent = "Running analysis, please wait...";
+  showBanner("Running analysis, please wait...");
+  toggleForm(true);
 
   const outputDiv = document.getElementById("output");
   outputDiv.textContent = "";
+  document.getElementById("resultImg").src = ""; // <-- clear previous image
 
   try {
     const fileRef = document.getElementById("fileRef").files[0];
@@ -79,6 +97,7 @@ async function runAnalysis() {
   } catch (error) {
     outputDiv.innerHTML = `<div class='alert alert-danger'>Error: ${error.message}</div>`;
   } finally {
-    banner.classList.add("hidden");
+    hideBanner();
+    toggleForm(false);
   }
 }

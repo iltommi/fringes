@@ -1,11 +1,13 @@
 import numpy as np
 from PIL import Image
 import matplotlib
-matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 from io import BytesIO
 import sys
+
+if sys.platform == "emscripten":
+    matplotlib.use("Agg")  # Use non-interactive backend
 
 def unwrap2D(wrapped_image, quality_image=None) -> np.ndarray:
     def wrap(x): return x + np.where(x > 0.5, -1, np.where(x < -0.5, 1, 0))
@@ -145,16 +147,23 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     unwrapRef = unwrap2D(fringeshiftRef, contrastRef)
     unwrapAngles = unwrap2D(bestAngle, bestContrast)
     swaps = np.rint(bestAngle - unwrapAngles).astype(int) % 2
+    
+    orig_bestFringeshift=bestFringeshift.copy()
     bestFringeshift[swaps == 1] = -bestFringeshift[swaps == 1]
     unwrapShot = unwrap2D(bestFringeshift, bestContrast)
+    orig_unwrapShot = unwrap2D(orig_bestFringeshift, bestContrast)
 
     diff = lambda arr: np.max(arr) - np.min(arr)
     fringeshift = unwrapShot - unwrapRef if diff(unwrapShot - unwrapRef) < diff(unwrapShot + unwrapRef) else unwrapShot + unwrapRef
+    orig_fringeshift = orig_unwrapShot - unwrapRef if diff(orig_unwrapShot - unwrapRef) < diff(orig_unwrapShot + unwrapRef) else orig_unwrapShot + unwrapRef
 
     cutoff_value = np.min(bestContrast) + cutoff * (np.max(bestContrast) - np.min(bestContrast))
     cutoff_mask = bestContrast < cutoff_value
     fringeshift[cutoff_mask] = np.nan
     fringeshift -= np.nanmin(fringeshift)
+    
+    orig_fringeshift[cutoff_mask] = np.nan
+    orig_fringeshift -= np.nanmin(orig_fringeshift)
 
     bestInterfringe[cutoff_mask] = np.nan
     unwrapAngles[cutoff_mask] = np.nan
@@ -162,6 +171,7 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     images_dict['Original'] = shot
     images_dict['Synthetic'] = bestContrast * (1 + np.cos(bestFringeshift * 2 * np.pi))
     images_dict['Fringeshift'] = fringeshift
+    images_dict['OrigFringeshift'] = orig_fringeshift
 
     fig, axes = plt.subplots(1, len(images_dict), figsize=(10, 3))
     axes = axes.flatten()
