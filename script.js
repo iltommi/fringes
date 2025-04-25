@@ -48,22 +48,23 @@ async function runAnalysis() {
   try {
     const fileRef = document.getElementById("fileRef").files[0];
     const fileShot = document.getElementById("fileShot").files[0];
-    if (!fileRef || !fileShot) throw new Error("Both files must be selected.");
-
-    const readAsBytes = (file) => new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject("Failed to read file");
-      reader.readAsArrayBuffer(file);
-    });
-
-    const [refBuf, shotBuf] = await Promise.all([
-      readAsBytes(fileRef),
-      readAsBytes(fileShot),
-    ]);
-
-    pyodide.FS.writeFile("ref.tiff", new Uint8Array(refBuf));
-    pyodide.FS.writeFile("shot.tiff", new Uint8Array(shotBuf));
+    if (fileRef && fileShot) {
+    
+        const readAsBytes = (file) => new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject("Failed to read file");
+          reader.readAsArrayBuffer(file);
+        });
+    
+        const [refBuf, shotBuf] = await Promise.all([
+          readAsBytes(fileRef),
+          readAsBytes(fileShot),
+        ]);
+    
+        pyodide.FS.writeFile("ref.tiff", new Uint8Array(refBuf));
+        pyodide.FS.writeFile("shot.tiff", new Uint8Array(shotBuf));
+    }
 
     const wl = parseInt(document.getElementById("wlSteps").value);
     const al = parseInt(document.getElementById("alSteps").value);

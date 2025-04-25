@@ -9,6 +9,95 @@ import sys
 if sys.platform == "emscripten":
     matplotlib.use("Agg")  # Use non-interactive backend
 
+def bubble_1d(x, rx, x0, ex):
+    return np.exp(-np.abs((x - x0) / rx) ** ex)
+
+def bubble_2d(x, y, a, rx, ry, x0, y0, ex):
+    return a * bubble_1d(x, rx, x0, ex) * bubble_1d(y, ry, y0, ex)
+
+def generate_images(width=512, height=512):
+	
+    data=generate_random_parameters()
+
+    x = np.linspace(-5, 5, width)
+    y = np.linspace(-5, 5, height)
+    X, Y = np.meshgrid(x, y)
+
+    # Fringe parameters
+    angle_rad = np.deg2rad(data['angle'])
+    kx = data['fringe_number'] * np.cos(angle_rad)
+    ky = data['fringe_number'] * np.sin(angle_rad)
+
+    print(f"Fringe angle: {data['angle']}, frequency: {data['fringe_number']:.2f}")
+
+    # Illumination field
+    illum = data['illum']
+    illumination = bubble_2d(X, Y, 1, illum['rxy'][0], illum['rxy'][1], illum['xy'][0], illum['xy'][1], 2)
+
+    # View mask
+    view = data['view']
+    mask = np.sqrt((X - view['center'][0]) ** 2 + (Y - view['center'][1]) ** 2) < view['size']
+    view_mask = mask.astype(float)
+
+    intensity = illumination * view_mask
+
+    # Fringe shift
+    fringe_shift = sum([
+        bubble_2d(X, Y, b['a'], b['rx'], b['ry'], b['x0'], b['y0'], b['ex'])
+        for b in data['bubbles']
+    ])
+    print(f"Fringe shift strength: {np.sum(fringe_shift)/X.size:.2f}")
+
+    # Phase calculations
+    noise_ref = 0.5 * np.random.randn(*X.shape)
+    noise_shot = 0.5 * np.random.randn(*X.shape)
+    phase_zero = np.pi * np.random.rand()
+
+    phase_ref = kx * X + ky * Y + phase_zero + noise_ref
+    phase_shot = phase_ref + 2 * np.pi * fringe_shift + noise_shot
+
+    ref  = intensity * (1 + np.cos(phase_ref))
+    shot = intensity * (1 + np.cos(phase_shot))
+    shift_visual = fringe_shift * view_mask
+
+    return ref,shot
+
+def generate_random_parameters():
+    """Generate and save random bubble and fringe parameters."""
+    n_bubbles = np.random.randint(5, 15)
+    params = {
+        'bubbles': [
+            {
+                'a': float(a),
+                'rx': float(rx),
+                'ry': float(ry),
+                'x0': float(x0),
+                'y0': float(y0),
+                'ex': float(ex)
+            }
+            for a, rx, ry, x0, y0, ex in zip(
+                np.random.uniform(2, 4, n_bubbles),
+                np.random.uniform(1, 2, n_bubbles),
+                np.random.uniform(1.5, 3, n_bubbles) + np.random.uniform(-0.2, 0.2, n_bubbles),
+                np.random.uniform(-5, 5, n_bubbles),
+                np.random.uniform(-2, 2, n_bubbles),
+                np.random.uniform(1.5, 3, n_bubbles),
+            )
+        ],
+        'illum': {
+            'rxy': list(np.random.uniform(4.5, 7.5, 2)),
+            'xy': list(np.random.uniform(-3, 3, 2))
+        },
+        'view': {
+            'size': float(np.random.uniform(4, 5)),
+            'center': list(np.random.uniform(-0.5, 0.5, 2))
+        },
+        'fringe_number': 2/np.pi*float(np.random.uniform(30,50)),
+        'angle': int(np.random.randint(-90, 90))
+    }
+
+    return params
+
 def unwrap2D(wrapped_image, quality_image=None) -> np.ndarray:
     def wrap(x): return x + np.where(x > 0.5, -1, np.where(x < -0.5, 1, 0))
 
@@ -107,8 +196,13 @@ def filterAngleInterfringe(fft, anglerad, interfringe):
 
 def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     
-    ref = np.array(Image.open(FileRef).convert('L'))
-    shot = np.array(Image.open(FileShot).convert('L'))   
+    try:
+        ref = np.array(Image.open(FileRef).convert('L'))
+        shot = np.array(Image.open(FileShot).convert('L'))   
+    except Exception as e:
+        print(f"Generating images")
+        ref,shot=generate_images(512,512)
+        
     images_dict = OrderedDict()
 
     orig_size=shot.shape
