@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fringe Analysis</title>
@@ -15,6 +16,7 @@
       padding: 2rem;
       max-width: 1000px;
       margin: auto;
+      padding-top: 10px; /* smaller padding for smaller banner */
     }
     .form-section {
       background: #fff;
@@ -36,11 +38,18 @@
       border-radius: 6px;
     }
     #loadingBanner {
+      position: fixed;
+      top: 50%;
+      left: 40%;
+      width: 20%;
+      z-index: 1050;
       opacity: 0;
       pointer-events: none;
       height: 0;
       overflow: hidden;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.3s ease, height 0.3s ease;
+      font-size: 0.9rem;
+      padding: 0.5rem 0;
     }
     #loadingBanner.show {
       opacity: 1;
@@ -50,9 +59,8 @@
   </style>
 </head>
 <body>
-<div id="loadingBanner" class="alert alert-warning text-center">
+<div id="loadingBanner" class="alert alert-warning text-center m-0">
   <span id="loadingText" role="status" aria-live="polite">Loading...</span>
-  <div class="spinner-border text-primary ms-2" role="status" aria-hidden="true"></div>
 </div>
 
 <div class="form-section">
@@ -79,14 +87,17 @@
         <input type="number" class="form-control" id="paramCutoff" value="0.1" min="0" step="0.01" required>
       </div>
     </div>
-    <div class="d-grid gap-2 mt-3">
-      <button type="submit" class="btn btn-primary" id="runBtn" disabled>Run Analysis</button>
+    <div class="row mt-3">
+      <div class="col-6">
+        <button type="submit" class="btn btn-primary btn-lg w-100" id="runBtn" disabled>Run Analysis</button>
+      </div>
+      <div class="col-6">
+        <a id="downloadLink" class="btn btn-success btn-lg w-100 hidden" href="#" download="output.tiff">Download TIFF</a>
+      </div>
     </div>
   </form>
 </div>
 
-<img id="resultImg" alt="Result Image" />
-<a id="downloadLink" class="btn btn-success hidden mt-2" href="#" download="output.tiff">Download TIFF</a>
-<div id="output" class="mt-3"></div>
+<iframe id="resultFrame" style="width:100%; height:100vh; border:none;"></iframe>
 </body>
 </html>

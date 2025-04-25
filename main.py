@@ -1,13 +1,10 @@
 import numpy as np
 from PIL import Image
-import matplotlib
-import matplotlib.pyplot as plt
-from collections import OrderedDict
 from io import BytesIO
 import sys
-
-if sys.platform == "emscripten":
-    matplotlib.use("Agg")  # Use non-interactive backend
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from collections import OrderedDict
 
 def bubble_1d(x, rx, x0, ex):
     return np.exp(-np.abs((x - x0) / rx) ** ex)
@@ -49,12 +46,12 @@ def generate_images(width=512, height=512):
 #     print(f"Fringe shift strength: {np.sum(fringe_shift)/X.size:.2f}")
 
     # Phase calculations
-    noise_ref = 0.5 * np.random.randn(*X.shape)
-    noise_shot = 0.5 * np.random.randn(*X.shape)
+    noise_ref =  0.25*np.random.rand(*fringe_shift.shape)
     phase_zero = np.pi * np.random.rand()
 
-    phase_ref = kx * X + ky * Y + phase_zero + noise_ref
-    phase_shot = phase_ref + 2 * np.pi * fringe_shift + noise_shot
+    phase_ref = kx * X + ky * Y + 2 * np.pi * (phase_zero + noise_ref)
+    noise_shot = 0.25*np.random.rand(*fringe_shift.shape)
+    phase_shot = phase_ref + 2 * np.pi * (fringe_shift + noise_shot)
 
     ref  = intensity * (1 + np.cos(phase_ref))
     shot = intensity * (1 + np.cos(phase_shot))
@@ -75,12 +72,12 @@ def generate_random_parameters():
                 'ex': float(ex)
             }
             for a, rx, ry, x0, y0, ex in zip(
-                np.random.uniform(3, 5, n_bubbles),
+                np.random.uniform(2, 4, n_bubbles),
                 np.random.uniform(1, 2, n_bubbles),
-                np.random.uniform(1.5, 3, n_bubbles) + np.random.uniform(-0.2, 0.2, n_bubbles),
+                np.random.uniform(1.5, 3, n_bubbles),
                 np.random.uniform(-5, 5, n_bubbles),
                 np.random.uniform(-2, 2, n_bubbles),
-                np.random.uniform(1.5, 3, n_bubbles),
+                np.random.uniform(2, 3.5, n_bubbles),
             )
         ],
         'illum': {
@@ -91,7 +88,7 @@ def generate_random_parameters():
             'size': float(np.random.uniform(4, 5)),
             'center': list(np.random.uniform(-0.5, 0.5, 2))
         },
-        'fringe_number': 2/np.pi*float(np.random.uniform(30,50)),
+        'fringe_number': 2/np.pi*float(np.random.uniform(20,40)),
         'angle': int(np.random.randint(-90, 90))
     }
 
@@ -193,7 +190,7 @@ def filterAngleInterfringe(fft, anglerad, interfringe):
     return fringeshift, contrast
 
 
-def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
+def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0, scale=256):
     
     try:
         ref = np.array(Image.open(FileRef).convert('L'))
@@ -204,7 +201,7 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     images_dict = OrderedDict()
 
     orig_size=shot.shape
-    scale=512    
+        
     ref = scale_array(ref, (scale,scale))
     shot = scale_array(shot, (scale,scale))
 
@@ -214,9 +211,9 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     weight=0.5
     anglerad, interfringe = guess(fftRef, weight)
 
-    i0=4
+    i0=3
     wl = wl if wl%2==1 else wl+1
-    interfringes = [i0 * (((interfringe / i0) ** (1 / (wl // 2))) ** i) for i in range(wl)]
+    interfringes = [i0 * (((1.5*interfringe / i0) ** (1 / (wl // 2))) ** i) for i in range(wl)]
 
     al=al if al%2==1 else al+1
     angles      = anglerad+(np.deg2rad(np.arange(-90,90,180/al)))
@@ -270,37 +267,98 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     images_dict['Angle'] = np.rad2deg(unwrapAngles-anglerad)
     images_dict['Interfringe'] = bestInterfringe/interfringe
 
-    ncols = 2
-    nrows = int(np.ceil( len(images_dict)/ ncols))
- 
-    fig, axes = plt.subplots(nrows, ncols, figsize=(10,3*nrows))
-    axes = axes.flatten()
- 
-    for i, (key, image) in enumerate(images_dict.items()):
-        im = axes[i].imshow(image)
-        fig.colorbar(im, ax=axes[i],fraction=0.046, pad=0.04)
-        axes[i].set_title(key)
-        axes[i].grid()
-             
-    for j in range(len(images_dict), len(axes)):
-        axes[j].axis('off')
- 
-#     plt.tight_layout()
-#     plt.show()
-
-#     fig, axes = plt.subplots(1, len(images_dict), figsize=(10, 3))
+#     ncols = 2
+#     nrows = int(np.ceil( len(images_dict)/ ncols))
+#  
+#     fig, axes = plt.subplots(nrows, ncols, figsize=(10,3*nrows))
 #     axes = axes.flatten()
-# 
+#  
 #     for i, (key, image) in enumerate(images_dict.items()):
-#         image = scale_array(image,orig_size)
 #         im = axes[i].imshow(image)
-#         fig.colorbar(im, ax=axes[i], fraction=0.046, pad=0.04)
+#         fig.colorbar(im, ax=axes[i],fraction=0.046, pad=0.04)
 #         axes[i].set_title(key)
 #         axes[i].grid()
-
-    plt.tight_layout()
+#              
+#     for j in range(len(images_dict), len(axes)):
+#         axes[j].axis('off')
+#  
+#     plt.tight_layout()
     directory= '/' if sys.platform == "emscripten" else ""
-    fig.savefig(directory+"output.png") 
-    image = Image.fromarray(fringeshift)
-    image.save(directory+"output.tiff", format='TIFF')
+#     fig.savefig(directory+"output.png") 
+
+
+
+    num_plots = len(images_dict)
+    
+    cols = 2
+    rows = num_plots // cols + (num_plots % cols)
+    
+    horizontal_spacing=0.2
+    vertical_spacing=0.1
+    
+    fig = make_subplots(
+        rows=rows, cols=cols,
+        subplot_titles=list(images_dict.keys()),
+        horizontal_spacing=horizontal_spacing, vertical_spacing=vertical_spacing
+    )
+    
+    for i, (key, array) in enumerate(images_dict.items()):
+        row = i // cols + 1  # Calculate row (1-based index)
+        col = i % cols + 1   # Calculate column (1-based index)
+        
+        colorbar_y = 0.92 - (1+vertical_spacing)*(row - 1) / rows  # Adjust colorbar vertically
+        colorbar_x = 0.4 + (1+horizontal_spacing)*(col - 1) / cols  # Place colorbar to the right of the subplot
+    
+        fig.add_trace(
+            go.Heatmap(z=array, colorscale='Viridis', colorbar=dict(x=colorbar_x, y=colorbar_y, len=0.8/rows)),
+            row=row, col=col
+        )
+    
+    fig.update_layout(
+        height=400*rows,
+        width=800,
+        showlegend=False
+    )
+
+    if sys.platform == "emscripten": 
+
+        plot_html = fig.to_html(include_plotlyjs='cdn', full_html=False)
+        
+        wrapped_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            html, body {{
+              margin: 0;
+              padding: 2rem;
+              display: flex;
+              justify-content: center;
+              align-items: flex-start;
+              height: 100%;
+              box-sizing: border-box;
+              background: transparent;
+            }}
+            #graph-container {{
+              max-width: 100%;
+            }}
+          </style>
+        </head>
+        <body>
+          <div id="graph-container">
+            {plot_html}
+          </div>
+        </body>
+        </html>
+        """
+        
+        with open("/output.html", "w") as f:
+            f.write(wrapped_html)
+    else:
+        fig.show()
+    
+    
+    images = [Image.fromarray(arr) for arr in images_dict.values()]
+    images[0].save(directory+"output.tiff", save_all=True, append_images=images[1:])
         

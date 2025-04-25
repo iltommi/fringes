@@ -25,8 +25,22 @@ async function loadPyodideAndPackages() {
   toggleForm(true);
 
   pyodide = await loadPyodide();
-  await pyodide.loadPackage(["numpy", "matplotlib", "pillow", "scipy"]);
+  
+  const packages = ["numpy", "pillow"];
+  
+  for (const pkg of packages) {
+    showBanner(`Loading Pyodide ${pkg}`);
+    await pyodide.loadPackage(pkg);
+  }
+  
+  showBanner(`Loading Pyodide plotly`);
+  await pyodide.loadPackage("micropip");
+  const micropip = pyodide.pyimport("micropip");
+  await micropip.install('plotly');
 
+//   await pyodide.loadPackage(["numpy", "matplotlib", "plotly", "pillow", "scipy"]);
+
+  showBanner(`Loading Pyodide main module`);
   const mainCode = await (await fetch("main.py")).text();
   await pyodide.runPythonAsync(mainCode);
 
@@ -40,10 +54,6 @@ loadPyodideAndPackages();
 async function runAnalysis() {
   showBanner("Running analysis, please wait...");
   toggleForm(true);
-
-  const outputDiv = document.getElementById("output");
-  outputDiv.textContent = "";
-  document.getElementById("resultImg").src = ""; // <-- clear previous image
 
   try {
     const fileRef = document.getElementById("fileRef").files[0];
@@ -77,14 +87,14 @@ async function runAnalysis() {
 
     const pythonCode = `analyze('ref.tiff', 'shot.tiff', wl=${wl}, al=${al}, cutoff=${cutoff})`;
     await pyodide.runPythonAsync(pythonCode);
-    outputDiv.textContent = output;
+    console.log(output);
 
-    const resultImg = document.getElementById("resultImg");
-    const resultPng = pyodide.FS.readFile("/output.png", { encoding: "binary" });
-    const blob = new Blob([resultPng], { type: "image/png" });
+    const resultHtml = pyodide.FS.readFile("/output.html", { encoding: "binary" });
+    const htmlBlob = new Blob([resultHtml], { type: "text/html" });
+    const htmlUrl = URL.createObjectURL(htmlBlob);
     if (oldImageUrl) URL.revokeObjectURL(oldImageUrl);
-    oldImageUrl = URL.createObjectURL(blob);
-    resultImg.src = oldImageUrl;
+    oldImageUrl = htmlUrl;
+    document.getElementById("resultFrame").src = oldImageUrl;
 
     const tiffData = pyodide.FS.readFile("/output.tiff", { encoding: "binary" });
     const tiffBlob = new Blob([tiffData], { type: "image/tiff" });
@@ -96,7 +106,7 @@ async function runAnalysis() {
     downloadLink.href = oldTiffUrl;
     downloadLink.classList.remove("hidden");
   } catch (error) {
-    outputDiv.innerHTML = `<div class='alert alert-danger'>Error: ${error.message}</div>`;
+    console.log(error.message);
   } finally {
     hideBanner();
     toggleForm(false);
