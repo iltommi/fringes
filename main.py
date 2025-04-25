@@ -28,7 +28,7 @@ def generate_images(width=512, height=512):
     kx = data['fringe_number'] * np.cos(angle_rad)
     ky = data['fringe_number'] * np.sin(angle_rad)
 
-    print(f"Fringe angle: {data['angle']}, frequency: {data['fringe_number']:.2f}")
+#     print(f"Fringe angle: {data['angle']}, frequency: {data['fringe_number']:.2f}")
 
     # Illumination field
     illum = data['illum']
@@ -46,7 +46,7 @@ def generate_images(width=512, height=512):
         bubble_2d(X, Y, b['a'], b['rx'], b['ry'], b['x0'], b['y0'], b['ex'])
         for b in data['bubbles']
     ])
-    print(f"Fringe shift strength: {np.sum(fringe_shift)/X.size:.2f}")
+#     print(f"Fringe shift strength: {np.sum(fringe_shift)/X.size:.2f}")
 
     # Phase calculations
     noise_ref = 0.5 * np.random.randn(*X.shape)
@@ -63,7 +63,6 @@ def generate_images(width=512, height=512):
     return ref,shot
 
 def generate_random_parameters():
-    """Generate and save random bubble and fringe parameters."""
     n_bubbles = np.random.randint(5, 15)
     params = {
         'bubbles': [
@@ -200,7 +199,6 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
         ref = np.array(Image.open(FileRef).convert('L'))
         shot = np.array(Image.open(FileShot).convert('L'))   
     except Exception as e:
-        print(f"Generating images")
         ref,shot=generate_images(512,512)
         
     images_dict = OrderedDict()
