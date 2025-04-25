@@ -75,7 +75,7 @@ def generate_random_parameters():
                 'ex': float(ex)
             }
             for a, rx, ry, x0, y0, ex in zip(
-                np.random.uniform(2, 4, n_bubbles),
+                np.random.uniform(3, 5, n_bubbles),
                 np.random.uniform(1, 2, n_bubbles),
                 np.random.uniform(1.5, 3, n_bubbles) + np.random.uniform(-0.2, 0.2, n_bubbles),
                 np.random.uniform(-5, 5, n_bubbles),
@@ -204,7 +204,7 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     images_dict = OrderedDict()
 
     orig_size=shot.shape
-    scale=256    
+    scale=512    
     ref = scale_array(ref, (scale,scale))
     shot = scale_array(shot, (scale,scale))
 
@@ -214,9 +214,10 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     weight=0.5
     anglerad, interfringe = guess(fftRef, weight)
 
-    i0=3
+    i0=4
     wl = wl if wl%2==1 else wl+1
     interfringes = [i0 * (((interfringe / i0) ** (1 / (wl // 2))) ** i) for i in range(wl)]
+
     al=al if al%2==1 else al+1
     angles      = anglerad+(np.deg2rad(np.arange(-90,90,180/al)))
 
@@ -261,19 +262,41 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     unwrapAngles[cutoff_mask] = np.nan
 
     images_dict['Original'] = shot
+    images_dict['Ref'] = shot
     images_dict['Synthetic'] = bestContrast * (1 + np.cos(bestFringeshift * 2 * np.pi))
+    images_dict['Quality'] = bestContrast
     images_dict['Fringeshift'] = fringeshift
     images_dict['OrigFringeshift'] = orig_fringeshift
+    images_dict['Angle'] = np.rad2deg(unwrapAngles-anglerad)
+    images_dict['Interfringe'] = bestInterfringe/interfringe
 
-    fig, axes = plt.subplots(1, len(images_dict), figsize=(10, 3))
+    ncols = 2
+    nrows = int(np.ceil( len(images_dict)/ ncols))
+ 
+    fig, axes = plt.subplots(nrows, ncols, figsize=(10,3*nrows))
     axes = axes.flatten()
-
+ 
     for i, (key, image) in enumerate(images_dict.items()):
-        image = scale_array(image,orig_size)
         im = axes[i].imshow(image)
-        fig.colorbar(im, ax=axes[i], fraction=0.046, pad=0.04)
+        fig.colorbar(im, ax=axes[i],fraction=0.046, pad=0.04)
         axes[i].set_title(key)
         axes[i].grid()
+             
+    for j in range(len(images_dict), len(axes)):
+        axes[j].axis('off')
+ 
+#     plt.tight_layout()
+#     plt.show()
+
+#     fig, axes = plt.subplots(1, len(images_dict), figsize=(10, 3))
+#     axes = axes.flatten()
+# 
+#     for i, (key, image) in enumerate(images_dict.items()):
+#         image = scale_array(image,orig_size)
+#         im = axes[i].imshow(image)
+#         fig.colorbar(im, ax=axes[i], fraction=0.046, pad=0.04)
+#         axes[i].set_title(key)
+#         axes[i].grid()
 
     plt.tight_layout()
     directory= '/' if sys.platform == "emscripten" else ""
