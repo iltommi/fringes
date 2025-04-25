@@ -262,7 +262,7 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0):
     unwrapAngles[cutoff_mask] = np.nan
 
     images_dict['Original'] = shot
-    images_dict['Ref'] = shot
+    images_dict['Ref'] = ref
     images_dict['Synthetic'] = bestContrast * (1 + np.cos(bestFringeshift * 2 * np.pi))
     images_dict['Quality'] = bestContrast
     images_dict['Fringeshift'] = fringeshift
