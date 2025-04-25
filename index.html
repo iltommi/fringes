@@ -14,7 +14,6 @@
       background-color: #f7f9fc;
       color: #333;
       padding: 2rem;
-      max-width: 1000px;
       margin: auto;
       padding-top: 10px; /* smaller padding for smaller banner */
     }
@@ -23,7 +22,8 @@
       border-radius: 10px;
       padding: 1.5rem;
       box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      margin-bottom: 2rem;
+      margin: 0 auto 2rem;  /* top/bottom 0 and 2rem, auto left/right */
+      max-width: 50%;
     }
     #resultImg {
       max-width: 100%;
@@ -56,6 +56,10 @@
       pointer-events: auto;
       height: auto;
     }
+    #resultFrame {
+        width: 100%;
+        border: none;
+    }
   </style>
 </head>
 <body>
@@ -63,7 +67,7 @@
   <span id="loadingText" role="status" aria-live="polite">Loading...</span>
 </div>
 
-<div class="form-section">
+<div id="form" class="form-section">
   <form id="analysisForm" onsubmit="runAnalysis(); return false;">
     <div class="row g-3">
       <div class="col-md-6">
@@ -98,6 +102,15 @@
   </form>
 </div>
 
-<iframe id="resultFrame" style="width:100%; height:100vh; border:none;"></iframe>
+<iframe id="resultFrame"></iframe>
+<script>
+    function resizeIframe() {
+        var headerHeight = document.getElementById('form').offsetHeight;
+        var iframe = document.getElementById('resultFrame');
+        iframe.style.height = (window.innerHeight - headerHeight-100) + 'px';
+    }
+    resizeIframe();
+    window.onresize = resizeIframe;
+</script>
 </body>
 </html>

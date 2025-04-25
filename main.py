@@ -332,7 +332,7 @@ def analyze(FileRef, FileShot, wl=1, al=1, cutoff=0, scale=256):
           <style>
             html, body {{
               margin: 0;
-              padding: 2rem;
+              padding: 0;
               display: flex;
               justify-content: center;
               align-items: flex-start;
