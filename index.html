@@ -1,115 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fringe Analysis</title>
+  <link rel="shortcut icon" href="favicon.ico">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
   <script defer src="script.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f7f9fc;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #f7f9fc;
       color: #333;
-      padding: 2rem;
-      margin: auto;
-      padding-top: 10px; /* smaller padding for smaller banner */
+      padding: 1rem;
     }
     .form-section {
       background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      margin: 0 auto 2rem;  /* top/bottom 0 and 2rem, auto left/right */
-      max-width: 700px;
-    }
-    #resultImg {
-      max-width: 100%;
-      margin-top: 1.5rem;
-      display: block;
-    }
-    #output {
-      margin-top: 1rem;
-      white-space: pre-wrap;
-      background: #eef;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       padding: 1rem;
-      border-radius: 6px;
+      margin-bottom: 1rem;
+      max-width: 100%;
+    }
+    .form-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .input-grouped {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .input-grouped .form-inline {
+      flex: 1;
+    }
+    label {
+      white-space: nowrap;
+      font-size: 0.9rem;
+    }
+    input[type="file"], input[type="number"] {
+      flex: 1;
     }
     #loadingBanner {
       position: fixed;
-      top: 50%;
-      left: 40%;
-      width: 20%;
+      top: 0;
+      width: 100%;
       z-index: 1050;
       opacity: 0;
       pointer-events: none;
-      height: 0;
-      overflow: hidden;
-      transition: opacity 0.3s ease, height 0.3s ease;
+      transition: opacity 0.3s ease;
+      text-align: center;
+      background: #ffc;
       font-size: 0.9rem;
-      padding: 0.5rem 0;
+      padding: 0.5rem;
     }
-    #loadingBanner.show {
-      opacity: 1;
-      pointer-events: auto;
-      height: auto;
-    }
+    #loadingBanner.show { opacity: 1; pointer-events: auto; }
     #resultFrame {
-        width: 100%;
-        border: none;
+      width: 100%;
+      border: none;
+      height: 60vh;
     }
   </style>
 </head>
 <body>
-<div id="loadingBanner" class="alert alert-warning text-center m-0">
-  <span id="loadingText" role="status" aria-live="polite">Loading...</span>
+<div id="loadingBanner" class="alert m-0" role="alert">
+  <span id="loadingText">Loading...</span>
 </div>
 
-<div id="form" class="form-section">
+<div class="form-section">
   <form id="analysisForm" onsubmit="runAnalysis(); return false;">
-    <div class="row g-3">
-      <div class="col-md-6">
-        <label for="fileRef" class="form-label">Reference File</label>
-        <input type="file" class="form-control" id="fileRef">
+
+    <!-- Reference and Shot on same line -->
+    <div class="input-grouped">
+      <div class="form-inline">
+        <label for="fileRef">Ref</label>
+        <input type="file" class="form-control form-control-sm" id="fileRef">
       </div>
-      <div class="col-md-6">
-        <label for="fileShot" class="form-label">Shot File</label>
-        <input type="file" class="form-control" id="fileShot">
-      </div>
-      <div class="col-md-4">
-        <label for="wlSteps" class="form-label">Frequencies</label>
-        <input id="wlSteps" type="number" class="form-control" value="10" min="1" required>
-      </div>
-      <div class="col-md-4">
-        <label for="alSteps" class="form-label">Angles</label>
-        <input id="alSteps" type="number" class="form-control" value="15" min="1" required>
-      </div>
-      <div class="col-md-4">
-        <label for="paramCutoff" class="form-label">Cutoff</label>
-        <input type="number" class="form-control" id="paramCutoff" value="0.1" min="0" step="0.01" required>
+      <div class="form-inline">
+        <label for="fileShot">Shot</label>
+        <input type="file" class="form-control form-control-sm" id="fileShot">
       </div>
     </div>
-    <div class="row mt-3">
-      <div class="col-6">
-        <button type="submit" class="btn btn-primary btn-lg w-100" id="runBtn" disabled>Run Analysis</button>
+
+    <!-- Frequency, Angles, Cutoff on same line -->
+    <div class="input-grouped">
+      <div class="form-inline">
+        <label for="wlSteps">Freq</label>
+        <input id="wlSteps" type="number" class="form-control form-control-sm" value="10" min="1" required>
       </div>
-      <div class="col-6">
-        <a id="downloadLink" class="btn btn-success btn-lg w-100 hidden" href="#" download="output.tiff">Download TIFF</a>
+      <div class="form-inline">
+        <label for="alSteps">Angles</label>
+        <input id="alSteps" type="number" class="form-control form-control-sm" value="15" min="1" required>
+      </div>
+      <div class="form-inline">
+        <label for="paramCutoff">Cutoff</label>
+        <input type="number" class="form-control form-control-sm" id="paramCutoff" value="0.1" min="0" step="0.01" required>
       </div>
     </div>
+
+    <!-- Buttons -->
+    <div class="row g-2 mt-2">
+      <div class="col-6">
+        <button type="submit" class="btn btn-primary btn-sm w-100" id="runBtn" disabled>Run</button>
+      </div>
+      <div class="col-6">
+        <a id="downloadLink" class="btn btn-success btn-sm w-100" href="#" download="output.tiff">Download</a>
+      </div>
+    </div>
+
   </form>
 </div>
 
 <iframe id="resultFrame"></iframe>
+
 <script>
-    function resizeIframe() {
-        var headerHeight = document.getElementById('form').offsetHeight;
-        var iframe = document.getElementById('resultFrame');
-        iframe.style.height = (window.innerHeight - headerHeight-100) + 'px';
+  function resizeIframe() {
+    const iframe = document.getElementById('resultFrame');
+    if (iframe.contentWindow.document.body) {
+      iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 'px';
     }
-    resizeIframe();
-    window.onresize = resizeIframe;
+  }
+
+  window.addEventListener('resize', resizeIframe);
 </script>
-</body>
-</html>
