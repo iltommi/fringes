@@ -114,7 +114,22 @@
   </form>
 </div>
 
-<iframe id="resultFrame"></iframe>
+<!-- Scrollable wrapper -->
+<div id="iframeWrapper" style="width: 100%; overflow-x: auto;">
+  <iframe id="resultFrame" onload="resizeIframe()" style="border: none; display: block;"></iframe>
+</div>
+
+<script>
+  function resizeIframe() {
+    const iframe = document.getElementById('resultFrame');
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    if (iframeDoc && iframeDoc.body) {
+      iframe.style.height = iframeDoc.body.scrollHeight + 'px';
+      iframe.style.width = iframeDoc.body.scrollWidth + 'px'; // <-- ADD THIS
+    }
+  }
+  window.addEventListener('resize', resizeIframe);
+</script>
 
 <script>
   function resizeIframe() {
